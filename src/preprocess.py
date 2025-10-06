@@ -19,6 +19,7 @@ features = [
 ]
 target = "koi_disposition"
 
+
 # Filtrar colunas e remover linhas com valores faltantes
 df = df[features + [target]].dropna()
 
@@ -39,6 +40,8 @@ df_fp_bal = resample(df_fp, n_samples=min_size, random_state=42)
 
 # Concatenar e embaralhar
 df_balanced = pd.concat([df_confirmed_bal, df_candidate_bal, df_fp_bal]).sample(frac=1, random_state=42)
+
+print(df_balanced[target].value_counts())
 
 # Salvar dataset processado
 df_balanced.to_csv(PROCESSED_PATH, index=False)
