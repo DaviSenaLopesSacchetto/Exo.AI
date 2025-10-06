@@ -91,7 +91,7 @@ def predict(
 
     # Predição
     pred = model.predict(X_new_scaled)
-    class_name = label_map_num2str.get(str(pred[0]), "UNKNOWN")
+    class_name = str(pred[0])
 
     return {"prediction": class_name}
 
