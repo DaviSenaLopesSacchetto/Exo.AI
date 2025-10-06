@@ -76,26 +76,24 @@ def predict(
     koi_score: float = Body(...),
     host_name: str = Body(None)
 ):
-    # Filtro: sistema solar
+    # Valida sistema solar
     if host_name and host_name.lower() in ["sol", "sun"]:
         return {
             "prediction": None,
             "message": "This object is from solar system, not an exoplanet!"
         }
 
-    # Prepara input
-    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad,
-                       koi_depth, koi_duration, koi_model_snr, koi_score]])
-    X_new_scaled = normalize_with_scaler(scaler, X_new)
+    # Regra de falso positivo baseado no score
+    if koi_score < 0.3:
+        return {"prediction": "FALSE POSITIVE"}
+
+    # Prepara input para o modelo
+    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad, koi_depth, koi_duration, koi_model_snr, koi_score]])
+    X_new_scaled = scaler.transform(X_new)
 
     # Predição
     pred = model.predict(X_new_scaled)
-    label_map_num2str = {
-        "CONFIRMED": "CONFIRMED",
-        "CANDIDATE": "CANDIDATE",
-        "FALSE POSITIVE": "FALSE POSITIVE"
-    }
-    class_name = label_map_num2str[str(pred[0])]
+    class_name = label_map_num2str.get(str(pred[0]), "UNKNOWN")
 
     return {"prediction": class_name}
 
