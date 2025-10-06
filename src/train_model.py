@@ -16,7 +16,7 @@ df = pd.read_csv("data/processed/exoplanets_balanced.csv")
 batch = df
 
 # Separar features e target
-features = ["koi_prad", "koi_period", "koi_steff", "koi_srad", "koi_depth", "koi_duration", "koi_model_snr", "koi_score"]
+features = ["koi_prad", "koi_period", "koi_steff", "koi_srad", "koi_depth", "koi_duration", "koi_model_snr"]
 target = "koi_disposition"
 
 X = df[features]
@@ -54,7 +54,7 @@ model = SGDClassifier(
 model.partial_fit(X_train_scaled, y_train, classes=classes)
 
 # Novo batch
-X_new = batch[[features]]  # features do batch
+X_new = batch[features]  # features do batch
 y_new = batch[target] # rótulos do batch
 
 # Normalizar usando o scaler incremental

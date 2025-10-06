@@ -12,7 +12,7 @@ scaler = joblib.load("models/scaler.pkl")
 df = pd.read_csv("data/processed/exoplanets_balanced.csv")
 
 features = ["koi_prad", "koi_period", "koi_steff", "koi_srad", 
-            "koi_depth", "koi_duration", "koi_model_snr", "koi_score"]
+            "koi_depth", "koi_duration", "koi_model_snr"]
 target = "koi_disposition"
 
 # Separar X e y

@@ -73,7 +73,6 @@ def predict(
     koi_depth: float = Body(...),
     koi_duration: float = Body(...),
     koi_model_snr: float = Body(...),
-    koi_score: float = Body(...),
     host_name: str = Body(None)
 ):
     # Valida sistema solar
@@ -84,11 +83,10 @@ def predict(
         }
 
     # Regra de falso positivo baseado no score
-    if koi_score < 0.3:
-        return {"prediction": "FALSE POSITIVE"}
+
 
     # Prepara input para o modelo
-    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad, koi_depth, koi_duration, koi_model_snr, koi_score]])
+    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad, koi_depth, koi_duration, koi_model_snr]])
     X_new_scaled = scaler.transform(X_new)
 
     # Predição
@@ -109,12 +107,11 @@ def feedback(
     koi_depth: float = Body(...),
     koi_duration: float = Body(...),
     koi_model_snr: float = Body(...),
-    koi_score: float = Body(...),
     real_label: str = Body(...)
 ):
     # Prepara batch
     X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad,
-                       koi_depth, koi_duration, koi_model_snr, koi_score]])
+                       koi_depth, koi_duration, koi_model_snr]])
     X_new_scaled = normalize_with_scaler(scaler, X_new)
     y_new = np.array([real_label.upper()])
 
