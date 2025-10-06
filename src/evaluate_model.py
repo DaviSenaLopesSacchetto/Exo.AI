@@ -5,7 +5,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Carregar modelo e scaler salvos
-model = joblib.load("models/sgd_incremental.pkl")
+model = joblib.load("models/random_forest_model.pkl")
 scaler = joblib.load("models/scaler.pkl")
 
 # Carregar dataset de teste

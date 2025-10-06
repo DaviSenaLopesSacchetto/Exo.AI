@@ -3,14 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import numpy as np
 import os
-from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import StandardScaler
-from utils import normalize_with_scaler
 
 # -------------------------
 # Caminhos dos arquivos
 # -------------------------
-MODEL_PATH = "models/sgd_incremental.pkl"
+MODEL_PATH = "models/random_forest_model.pkl"
 SCALER_PATH = "models/scaler.pkl"
 
 # -------------------------
@@ -29,35 +26,23 @@ app.add_middleware(
 # -------------------------
 # Classes do modelo
 # -------------------------
-classes = np.array(["CONFIRMED", "CANDIDATE", "FALSE POSITIVE"])
+classes = ["CONFIRMED", "CANDIDATE", "FALSE POSITIVE"]
 
 # -------------------------
-# Carrega ou cria modelo e scaler
+# Carrega modelo e scaler (obrigatórios)
 # -------------------------
-if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
-else:
-    os.makedirs("models", exist_ok=True)
-    # Modelo incremental
-    model = SGDClassifier(
-        loss='log_loss',
-        max_iter=1,
-        warm_start=True,
-        random_state=42
-    )
-    # Inicializa scaler
-    scaler = StandardScaler()
-    # Salva arquivos vazios inicialmente
-    joblib.dump(model, MODEL_PATH)
-    joblib.dump(scaler, SCALER_PATH)
+if not (os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH)):
+    raise FileNotFoundError("Modelo e scaler não encontrados. Treine primeiro com train.py.")
+
+model = joblib.load(MODEL_PATH)
+scaler = joblib.load(SCALER_PATH)
 
 # -------------------------
 # Endpoint principal
 # -------------------------
 @app.get("/redmoons")
 def home():
-    return {"msg": "API de Exoplanetas (SGDClassifier incremental) pronta 🚀"}
+    return {"msg": "API de Exoplanetas (Random Forest) pronta 🚀"}
 
 # -------------------------
 # Endpoint de predição
@@ -73,29 +58,28 @@ def predict(
     koi_model_snr: float = Body(...),
     host_name: str = Body(None)
 ):
-    # Valida sistema solar
+    # 🚫 Validação: sistema solar
     if host_name and host_name.lower() in ["sol", "sun"]:
         return {
             "prediction": None,
-            "message": "This object is from solar system, not an exoplanet!"
+            "message": "This object is from the Solar System, not an exoplanet!"
         }
 
-    # Prepara input para o modelo
-    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad, koi_depth, koi_duration, koi_model_snr]])
+    # 🔢 Monta o vetor de entrada
+    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad,
+                       koi_depth, koi_duration, koi_model_snr]])
 
-    try:
-        X_new_scaled = scaler.transform(X_new)
-    except:
-        return {"prediction": None, "message": "Scaler ainda não treinado. Use feedback primeiro."}
+    # 🔄 Normaliza os dados
+    X_new_scaled = scaler.transform(X_new)
 
-    # Predição
-    pred = model.predict(X_new_scaled)
-    class_name = str(pred[0])
+    # 🤖 Faz a predição
+    pred = model.predict(X_new_scaled)[0]
 
-    return {"prediction": class_name}
+    # 🔤 Retorna nome da classe
+    return {"prediction": str(pred)}
 
 # -------------------------
-# Endpoint de feedback (treino incremental)
+# Endpoint de feedback (agora só registra, não treina)
 # -------------------------
 @app.post("/feedback")
 def feedback(
@@ -108,22 +92,21 @@ def feedback(
     koi_model_snr: float = Body(...),
     real_label: str = Body(...)
 ):
-    X_new = np.array([[koi_prad, koi_period, koi_steff, koi_srad,
-                       koi_depth, koi_duration, koi_model_snr]])
-    y_new = np.array([real_label.upper()])
+    # ⚠️ Agora não atualiza o modelo — apenas salva feedback
+    feedback_data = {
+        "koi_prad": koi_prad,
+        "koi_period": koi_period,
+        "koi_steff": koi_steff,
+        "koi_srad": koi_srad,
+        "koi_depth": koi_depth,
+        "koi_duration": koi_duration,
+        "koi_model_snr": koi_model_snr,
+        "real_label": real_label
+    }
 
-    # Se o scaler nunca foi treinado, faz fit
-    if not hasattr(scaler, "scale_"):
-        scaler.fit(X_new)
-        X_new_scaled = scaler.transform(X_new)
-    else:
-        X_new_scaled = scaler.transform(X_new)
+    # Salva feedback localmente
+    os.makedirs("feedbacks", exist_ok=True)
+    with open("feedbacks/feedback_log.csv", "a") as f:
+        f.write(",".join(map(str, feedback_data.values())) + "\n")
 
-    # Atualiza modelo incrementalmente
-    model.partial_fit(X_new_scaled, y_new, classes=classes)
-
-    # Salva modelo atualizado
-    joblib.dump(model, MODEL_PATH)
-    joblib.dump(scaler, SCALER_PATH)
-
-    return {"msg": f"Feedback registrado! Modelo atualizado com {real_label.upper()}."}
+    return {"msg": f"Feedback registrado para {real_label.upper()}. Modelo não atualizado automaticamente."}
